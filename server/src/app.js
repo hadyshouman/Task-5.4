@@ -23,6 +23,9 @@ app.use(cookieParser());
 
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET,
+  // Bind tokens to the authenticated account. requireAuth sets req.user on
+  // the token endpoint and before CSRF validation on maintenance writes.
+  getSessionIdentifier: (req) => req.user.id,
   cookieName: 'csrf-token',
   cookieOptions: { httpOnly: false, sameSite: 'lax', secure: false, path: '/' },
   getTokenFromRequest: (req) => req.headers['x-csrf-token']
