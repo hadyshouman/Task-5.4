@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const { generateToken, doubleCsrfProtection } = doubleCsrf({
+const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET,
   cookieName: 'csrf-token',
   cookieOptions: { httpOnly: false, sameSite: 'lax', secure: false, path: '/' },
@@ -31,7 +31,7 @@ const { generateToken, doubleCsrfProtection } = doubleCsrf({
 // Authenticated clients obtain a token, then echo it in a header on writes.
 // Login and registration remain exempt because no authenticated session exists yet.
 app.get('/api/csrf-token', requireAuth, (req, res) => {
-  res.json({ csrfToken: generateToken(req, res) });
+  res.json({ csrfToken: generateCsrfToken(req, res) });
 });
 app.locals.doubleCsrfProtection = doubleCsrfProtection;
 
