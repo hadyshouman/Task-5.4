@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import rateLimit from 'express-rate-limit';
 import {
   getAllRequests,
   getRequest,
@@ -9,6 +10,14 @@ import {
 } from '../controllers/maintenanceController.js';
 
 const router = Router();
+const maintenanceLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { message: 'Too many maintenance requests. Please try again later.' }
+});
+router.use(maintenanceLimiter);
 
 // Reading is public; writing requires a logged-in user.
 //
@@ -22,8 +31,8 @@ const router = Router();
 //      server.
 router.get('/', getAllRequests);
 router.get('/:id', getRequest);
-router.post('/', requireAuth, createRequest);
-router.patch('/:id', requireAuth, updateRequest);
-router.delete('/:id', requireAuth, deleteRequest);
+router.post('/', requireAuth, (req, res, next) => req.app.locals.doubleCsrfProtection(req, res, next), createRequest);
+router.patch('/:id', requireAuth, (req, res, next) => req.app.locals.doubleCsrfProtection(req, res, next), updateRequest);
+router.delete('/:id', requireAuth, (req, res, next) => req.app.locals.doubleCsrfProtection(req, res, next), deleteRequest);
 
 export default router;

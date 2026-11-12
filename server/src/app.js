@@ -2,6 +2,8 @@ import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { doubleCsrf } from 'csrf-csrf';
+import { requireAuth } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import bookingRoutes from './routes/bookings.js';
 import userRoutes from './routes/users.js';
@@ -18,6 +20,20 @@ app.use(express.json());
 // which needs no JavaScript and triggers no CORS preflight) is understood.
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+const { generateToken, doubleCsrfProtection } = doubleCsrf({
+  getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET,
+  cookieName: 'csrf-token',
+  cookieOptions: { httpOnly: false, sameSite: 'lax', secure: false, path: '/' },
+  getTokenFromRequest: (req) => req.headers['x-csrf-token']
+});
+
+// Authenticated clients obtain a token, then echo it in a header on writes.
+// Login and registration remain exempt because no authenticated session exists yet.
+app.get('/api/csrf-token', requireAuth, (req, res) => {
+  res.json({ csrfToken: generateToken(req, res) });
+});
+app.locals.doubleCsrfProtection = doubleCsrfProtection;
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
